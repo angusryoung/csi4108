@@ -18,8 +18,9 @@ class SBox:
         #setting is a dictonary
         #input as hex
         hexValue = SBox.binArrToHex(input)
+        #print(input)
         newHexValue = self.setting[hexValue]
-        
+        #print(newHexValue)
         return SBox.hexToBinaryArr(newHexValue)
     
 
@@ -105,12 +106,23 @@ def convert4x16(input):
 
 def round (input,keyobj,sboxobj,permuteobj, round_number):
     xorResult = keyobj.xor_using_key(input,round_number)
+    #print ("after key xor at round "+str(round_number)+" :" + str(xorResult))
     s1,s2,s3,s4 = convert16x4(xorResult)
 
     subResult = np.append(sboxobj.sboxEncypt(s1),np.append(sboxobj.sboxEncypt(s2),np.append(sboxobj.sboxEncypt(s3),sboxobj.sboxEncypt(s4))))
+    #print ("after sub at round "+str(round_number)+" :" + str(subResult))
     permuteResult = permuteobj.permute(subResult)
 
     return permuteResult
+
+def lastRound(input,keyobj,sboxobj, round_number):
+    xorResult = keyobj.xor_using_key(input,round_number)
+    #print ("after key xor at round "+str(round_number)+" :" + str(xorResult))
+    s1,s2,s3,s4 = convert16x4(xorResult)
+    subResult = np.append(sboxobj.sboxEncypt(s1),np.append(sboxobj.sboxEncypt(s2),np.append(sboxobj.sboxEncypt(s3),sboxobj.sboxEncypt(s4))))
+    #print ("after sub at round "+str(round_number)+" :" + str(subResult))
+    return subResult
+
 
 def decimalToBinary(n):
     # converting decimal to binary
@@ -120,7 +132,12 @@ def decimalToBinary(n):
 def make10000inputs():
     inputList = []
     for i in range(10000):
-        inputList.append(decimalToBinary(i))
+        newElement = decimalToBinary(i*6)
+        if (len(newElement) < 16):
+            newElement = np.concatenate((np.array([0]*(16)),np.array(newElement)))
+        inputList.append(newElement)
+        
+        
     return inputList
 
 
@@ -146,22 +163,34 @@ def main():
     sBoxDictionary = {}
     randomArray = np.arange(16)
     np.random.shuffle(randomArray)
-    print("sBox mapping:"+str(randomArray))
+    print("sBox mapping: "+str(randomArray))
 
     for i in range(16):
         sBoxDictionary[i]= randomArray[i]
     
     #declare all the objects here
     sbox1 = SBox(randomArray)
-    key1 = Key([np.array([1]*16),np.array([-1]*16),np.array([-1]*16)])
+    key1 = Key([np.array([1]*16),np.array([1]*16),np.array([1]*16),np.array([1]*16),np.array([1]*16)])
     Perm1 = Permutation(np.arange(16))
 
 
     
 
 
-    roundResult = round(input, key1,sbox1,Perm1,0)
-    print("result after round 1" + str(roundResult))
+    #round1 = round(input, key1,sbox1,Perm1,0)
+    #round2 = round(round1,key1,sbox1,Perm1,1)
+    #round3 = round(round2,key1,sbox1,Perm1,2)
+    #round4 = lastRound(round3,key1,sbox1,3)
+    #round5 = key1.xor_using_key(round4,4)
+    
+    input10000 = make10000inputs()
+    for i in input10000:
+        round1 = round(input, key1,sbox1,Perm1,0)
+        round2 = round(round1,key1,sbox1,Perm1,1)
+        round3 = round(round2,key1,sbox1,Perm1,2)
+        round4 = lastRound(round3,key1,sbox1,3)
+        round5 = key1.xor_using_key(round4,4)
+        print("result for input " +str(i)+" is"+ str(round5))
 
     
 
